@@ -8,6 +8,8 @@ const path = require('path');
 const jsonFiles = [];
 const scheduledTasks = []
 const tasks = []
+
+
 fs
     .readdirSync(path.join(__dirname, 'chats')).forEach(file => {
         jsonFiles.push(JSON.parse(fs.readFileSync(path.join(__dirname, 'chats', file))));
@@ -36,22 +38,33 @@ wa.create({
                 console.log('No id for task of name :' + mytask.contactName)
             }
         });
-    
 
-        console.log('scheduledTasks: ' + tasks.length);
-        console.log(tasks);
-        tasks.forEach(() => {
-            scheduledTasks.push(schedule.scheduleJob('42 * * * *', async () => {
-                console.log('Executing job');
-              }))
+        tasks.forEach((task) => {
+            const [day, month, year] = [...task.date.split('/')];
+            const [hour, minute] = [...task.time.split(':')];
+            const dateToExecute = new Date(year, month - 1, day, hour, minute, 0);
+            if (dateToExecute > Date.now()) {
+                const job = schedule.scheduleJob(dateToExecute, () => (sendMessageTo(client, task)));
+            }
         });
-
-    })
+        console.log('ScheduledJobs :' + Object.keys(schedule.scheduledJobs).length);
+        console.log(schedule.scheduledJobs);
+        console.log('ScheduledDates :')
+        for (let job in schedule.scheduledJobs) { 
+            console.log(schedule.scheduledJobs[job].nextInvocation());
+        };
+    });
 
 });
+
 function getContactId(contacts = [], name = '') {
-   const contact = contacts.find((contact) => (contact.name === name));
-   return contact ? contact.id : undefined;
+    const contact = contacts.find((contact) => (contact.name === name));
+    return contact ? contact.id : undefined;
+};
+
+async function sendMessageTo(client, contact) {
+    await client.sendText(contact.id, contact.message);
+    console.log('Executing job ' + contact.contactName);
 };
 
 function start(client) {
@@ -62,5 +75,3 @@ function start(client) {
         }
     })
 };
-
-
