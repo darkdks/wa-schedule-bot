@@ -6,15 +6,12 @@ const schedule = require('node-schedule');
 const fs = require('fs');
 const path = require('path');
 const jsonFiles = [];
-const scheduledTasks = []
 const tasks = []
 
 
-fs
-    .readdirSync(path.join(__dirname, 'chats')).forEach(file => {
-        jsonFiles.push(JSON.parse(fs.readFileSync(path.join(__dirname, 'chats', file))));
-    });
-
+fs.readdirSync(path.join(__dirname, 'chats')).forEach(file => {
+    jsonFiles.push(JSON.parse(fs.readFileSync(path.join(__dirname, 'chats', file))));
+});
 
 wa.create({
     sessionId: "FESSORA_TEST",
@@ -29,30 +26,26 @@ wa.create({
 }).then(client => {
     start(client);
     client.getAllContacts().then(allContacts => {
-        jsonFiles.forEach(mytask => {
-            const contactID = getContactId(allContacts, mytask.contactName);
+        jsonFiles.forEach(task => {
+            const contactID = getContactId(allContacts, task.contactName);
             if (contactID) {
-                mytask.id = contactID;
-                tasks.push(mytask);
+                task.id = contactID;
+                const [day, month, year] = [...task.date.split('/')];
+                const [hour, minute] = [...task.time.split(':')];
+                const dateToExecute = new Date(year, month - 1, day, hour, minute, 0);
+                if (dateToExecute > Date.now()) {
+                    const job = schedule.scheduleJob(dateToExecute, () => (sendMessageTo(client, task)));
+                    if (job) {
+                        console.log('--- Scheduled chats ---');
+                        console.log('Contact: ' + task.contactName + ' ID: ' + task.id);
+                        console.log('Fire on: ' + task.date + ' ' + task.time);
+                        console.log('Message: ' + task.message);
+                    }
+                };
             } else {
-                console.log('No id for task of name :' + mytask.contactName)
+                console.log('No id for task of name :' + task.contactName)
             }
         });
-
-        tasks.forEach((task) => {
-            const [day, month, year] = [...task.date.split('/')];
-            const [hour, minute] = [...task.time.split(':')];
-            const dateToExecute = new Date(year, month - 1, day, hour, minute, 0);
-            if (dateToExecute > Date.now()) {
-                const job = schedule.scheduleJob(dateToExecute, () => (sendMessageTo(client, task)));
-            }
-        });
-        console.log('ScheduledJobs :' + Object.keys(schedule.scheduledJobs).length);
-        console.log(schedule.scheduledJobs);
-        console.log('ScheduledDates :')
-        for (let job in schedule.scheduledJobs) { 
-            console.log(schedule.scheduledJobs[job].nextInvocation());
-        };
     });
 
 });
@@ -71,7 +64,8 @@ function start(client) {
     client.onMessage(async message => {
         if (message.body === 'Hi') {
             await client.sendText(message.from, '👋 Hello! Eu sou um bot! :D');
-            console.log(message.from);
+        } else {
+            console.log(message.from + ' : ' + message.body);
         }
     })
 };
