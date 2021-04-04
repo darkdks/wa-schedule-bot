@@ -1,0 +1,10 @@
+{
+    "sessionId": "FESSORA_TEST",
+    "authTimeout": 60,
+    "disableSpins": true,
+    "headless": true,
+    "hostNotificationLang": "PT_BR",
+    "logConsole": true,
+    "popup": true,
+    "qrTimeout": 0
+}
